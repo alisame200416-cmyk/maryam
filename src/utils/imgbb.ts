@@ -4,8 +4,8 @@
  * Returns direct permanent HTTPS URLs for storing in Firebase Firestore.
  */
 
-// ضع مفتاح ImgBB المجاني الخاص بك هنا مباشرة بين علامتي التنصيص (أو في ملف .env)
-export const HARDCODED_IMGBB_KEY: string = '';
+// المفتاح مبرمج مسبقاً في النظام ليعمل الرفع تلقائياً وبشكل صامت دون إزعاج المالك
+export const HARDCODED_IMGBB_KEY: string = '2d9b62a4f6d3f2ef1c8fa9960241dbd2';
 
 const STORAGE_KEY_IMGBB = 'maryam_resort_imgbb_key';
 

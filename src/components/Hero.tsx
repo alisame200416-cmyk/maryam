@@ -31,6 +31,7 @@ export const Hero: React.FC<HeroProps> = ({
           <img
             src={bannerImage}
             alt="صورة شاليه مريم من قاعدة البيانات"
+            decoding="async"
             className="w-full h-full object-cover object-center scale-105 filter brightness-50 transition-all duration-700"
             referrerPolicy="no-referrer"
           />

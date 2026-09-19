@@ -240,7 +240,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
           {/* Horizontal Scrollable Calendar Wrapper */}
           <div className="overflow-x-auto pb-4 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-thin scrollbar-thumb-[#233d2e] scrollbar-track-transparent">
-            <div className="min-w-[760px] lg:min-w-0">
+            <div className="min-w-[780px] sm:min-w-[820px] lg:min-w-0">
               {/* Days of Week Header */}
               <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center pt-2 pb-2">
                 {ARABIC_DAYS.map((dayName, idx) => {

@@ -37,6 +37,8 @@ export const PoolSection: React.FC<PoolSectionProps> = ({ imagesConfig, isImages
               <img
                 src={poolImage}
                 alt="صورة المسبح الأولمبي من Firestore"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-[400px] sm:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700"
                 referrerPolicy="no-referrer"
               />

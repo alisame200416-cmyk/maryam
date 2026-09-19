@@ -85,6 +85,8 @@ export const FacilityExplorer: React.FC<FacilityExplorerProps> = ({ onScrollToBo
                     <img
                       src={facility.imageUrl}
                       alt={facility.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       referrerPolicy="no-referrer"
                     />

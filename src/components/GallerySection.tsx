@@ -120,6 +120,8 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                     <img
                       src={item.imageUrl}
                       alt={item.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       referrerPolicy="no-referrer"
                     />
@@ -163,7 +165,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
       {/* Lightbox Modal */}
       {activeLightboxIndex !== null && filteredItems[activeLightboxIndex]?.imageUrl && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-fade-in overflow-y-auto">
           <div className="absolute inset-0" onClick={closeLightbox} />
           <button
             onClick={closeLightbox}
