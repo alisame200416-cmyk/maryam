@@ -28,11 +28,13 @@ import {
   Cloud,
   Database,
   Check,
+  Key,
 } from 'lucide-react';
 import { BookingRecord, ChaletConfig, PricingConfig, ShiftType, ResortImagesConfig } from '../types';
 import { formatArabicDate, getArabicDayName } from '../utils/dateHelpers';
 import { formatIQD } from '../utils/bookingStore';
 import { DEFAULT_RESORT_IMAGES } from '../data/chaletData';
+import { getImgBBApiKey, saveImgBBApiKey } from '../utils/imgbb';
 import {
   validateIraqiPhoneNumber,
   isSuspiciousBooking,
@@ -126,6 +128,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [tempImages, setTempImages] = useState<ResortImagesConfig>(imagesConfig || DEFAULT_RESORT_IMAGES);
   const [imagesSuccessMsg, setImagesSuccessMsg] = useState('');
   const [isProcessingKey, setIsProcessingKey] = useState<string | null>(null);
+  const [imgBBApiKeyInput, setImgBBApiKeyInput] = useState<string>(() => getImgBBApiKey());
+  const [keySavedMsg, setKeySavedMsg] = useState('');
+  const [showKeyConfig, setShowKeyConfig] = useState(false);
+
+  const handleSaveImgBBKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveImgBBApiKey(imgBBApiKeyInput);
+    setKeySavedMsg('تم حفظ مفتاح ImgBB API بنجاح! يمكنك الآن رفع الصور مباشرة.');
+    setTimeout(() => setKeySavedMsg(''), 4000);
+  };
 
   // Sync internal states when external props update
   useEffect(() => {
@@ -280,22 +292,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleFileUpload = async (key: keyof ResortImagesConfig, file: File) => {
     try {
       setIsProcessingKey(key);
-      // 1. Upload the real binary file to Firebase Storage bucket and save permanent URL to Firestore
-      const storageUrl = await uploadResortImageFile(key, file);
+      // 1. Upload the real binary file via free ImgBB API and save permanent URL to Firestore
+      const directImageUrl = await uploadResortImageFile(key, file, imgBBApiKeyInput);
 
       // 2. Update local state and parent state immediately
       const updated = {
         ...tempImages,
-        [key]: storageUrl,
+        [key]: directImageUrl,
       };
       setTempImages(updated);
       onUpdateImagesConfig(updated);
 
-      setImagesSuccessMsg('تم رفع ملف الصورة بنجاح إلى Firebase Storage وتثبيت الرابط السحابي في Firestore!');
+      setImagesSuccessMsg('تم رفع الصورة بنجاح عبر ImgBB وحفظ الرابط الدائم في Firestore وتحديث الموقع فوراً!');
       setTimeout(() => setImagesSuccessMsg(''), 4500);
     } catch (err: any) {
-      console.error('Firebase Storage upload error:', err);
-      alert(err?.message || 'حدث خطأ أثناء رفع الصورة إلى Firebase Storage. يرجى التأكد من اتصال الإنترنت.');
+      console.error('ImgBB upload error:', err);
+      const errMsg = err?.message || 'حدث خطأ أثناء رفع الصورة عبر ImgBB.';
+      if (errMsg.includes('مفتاح ImgBB') || !imgBBApiKeyInput) {
+        setShowKeyConfig(true);
+      }
+      alert(errMsg);
     } finally {
       setIsProcessingKey(null);
     }
@@ -1195,14 +1211,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div>
                     <h3 className="text-base font-bold text-[#f4efe6] flex items-center gap-2">
                       <Upload className="w-5 h-5 text-[#c5a059]" />
-                      <span>رفع وتثبيت صور المنتجع عبر Firebase Storage</span>
+                      <span>رفع وتثبيت صور المنتجع عبر ImgBB السحابي المجاني (بدون بطاقة بنكية)</span>
                     </h3>
                     <p className="text-xs text-[#a39a8c] mt-1">
-                      يتم رفع ملفات الصور مباشرة إلى حاوية التخزين السحابي وحفظ الروابط في Firestore لتبقى الصور ثابتة دائماً حتى بعد التمرير والتحديث.
+                      يتم رفع ملفات الصور مباشرة عبر خدمة ImgBB المجانية وحفظ الروابط المباشرة في Firestore لتبقى الصور ثابتة دائماً حتى بعد التمرير والتحديث.
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyConfig(!showKeyConfig)}
+                      className="px-3.5 py-2.5 rounded-xl bg-[#14221c] border border-[#2e473a] hover:border-[#c5a059] text-xs font-semibold text-[#f4efe6] flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Key className="w-4 h-4 text-[#c5a059]" />
+                      <span>إعداد مفتاح ImgBB</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleSaveImages}
@@ -1213,6 +1238,86 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {/* ImgBB API Key Setup Panel */}
+                {(showKeyConfig || !imgBBApiKeyInput) && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#101b15] border border-[#2d4d3a] space-y-4 animate-fade-in shadow-xl">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-[#f4efe6] flex items-center gap-2">
+                          <Key className="w-4 h-4 text-[#c5a059]" />
+                          <span>إعداد مفتاح API المجاني لخدمة ImgBB</span>
+                          {imgBBApiKeyInput ? (
+                            <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-semibold">
+                              المفتاح متصل ومفعل
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-amber-950 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-semibold">
+                              مطلوب مفتاح لرفع الصور
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-xs text-[#a39a8c] mt-1 leading-relaxed">
+                          خدمة ImgBB مجانية 100% وتسمح برفع الصور وحفظ روابطها الدائمة دون طلب أي بطاقة ائتمانية.
+                        </p>
+                      </div>
+                      {imgBBApiKeyInput && (
+                        <button
+                          type="button"
+                          onClick={() => setShowKeyConfig(false)}
+                          className="text-xs text-[#8c8273] hover:text-[#f4efe6]"
+                        >
+                          إغلاق
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-[#0c1411] border border-[#1f362a] text-xs text-[#a39a8c] space-y-1.5">
+                      <p className="font-bold text-[#f4efe6]">كيف تحصل على مفتاحك المجاني في 30 ثانية؟</p>
+                      <ol className="list-decimal list-inside space-y-1 text-[11px] text-[#c0b7a8]">
+                        <li>
+                          افتح الرابط الرسمي:{' '}
+                          <a
+                            href="https://api.imgbb.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#c5a059] underline font-bold inline-flex items-center gap-1"
+                          >
+                            api.imgbb.com <ExternalLink className="w-3 h-3 inline" />
+                          </a>
+                        </li>
+                        <li>سجّل حسابك مجاناً (أو سجّل الدخول) واضغط على <strong>Get API key</strong>.</li>
+                        <li>انسخ المفتاح المعطى لك والصقه في الحقل أدناه، ثم اضغط <strong>حفظ المفتاح</strong>.</li>
+                      </ol>
+                    </div>
+
+                    <form onSubmit={handleSaveImgBBKey} className="flex flex-col sm:flex-row items-center gap-3">
+                      <div className="relative flex-1 w-full">
+                        <input
+                          type="text"
+                          value={imgBBApiKeyInput}
+                          onChange={(e) => setImgBBApiKeyInput(e.target.value)}
+                          placeholder="أدخل مفتاح ImgBB API هنا (مثال: 3a7b8c9d0e1f...)"
+                          className="w-full bg-[#0c1411] border border-[#23382e] focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-[#f4efe6] focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#c5a059] hover:bg-[#d5b069] text-[#0c1411] font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>حفظ وتفعيل المفتاح</span>
+                      </button>
+                    </form>
+
+                    {keySavedMsg && (
+                      <div className="p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>{keySavedMsg}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Success Message Banner */}
                 {imagesSuccessMsg && (
@@ -1226,7 +1331,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="p-3.5 rounded-xl bg-[#14221c]/70 border border-[#23382e] text-[11px] sm:text-xs text-[#a39a8c] flex items-start gap-2.5">
                   <Sparkles className="w-4 h-4 text-[#c5a059] shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong className="text-[#f4efe6]">نظام التخزين السحابي الحقيقي (Firebase Storage):</strong> اضغط على زر <span className="text-[#c5a059] font-bold">"رفع ملف صورة إلى السحابة"</span> لاختيار صورة من هاتفك أو جهازك (JPG, PNG, WEBP). يتم رفع الملف الفعلي مباشرة إلى Firebase Storage وتوليد رابط دائم في Firestore بدلاً من Base64، لضمان عدم اختفائها إطلاقاً!
+                    <strong className="text-[#f4efe6]">نظام رفع الصور المجاني (ImgBB + Firestore):</strong> عند اختيار صورة من جهازك، يتم رفعها فوراً إلى ImgBB مجاناً دون بطاقة بنكية، ويتم أخذ الرابط المباشر الدائم (https://i.ibb.co/...) وحفظه في قاعدة بيانات Firestore السحابية فوراً لضمان بقائها دائمة وعدم اختفائها أبداً عند التمرير أو تحديث الصفحة!
                   </p>
                 </div>
 
@@ -1363,7 +1468,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <Camera className="w-5 h-5" />
                                   </div>
                                   <span className="text-xs font-bold text-[#d2c9b8]">لم يتم رفع صورة بعد</span>
-                                  <span className="text-[10px] text-[#786e60] mt-0.5">انقر لرفع ملف صورة إلى Firebase Storage</span>
+                                  <span className="text-[10px] text-[#786e60] mt-0.5">انقر لرفع صورة عبر ImgBB مجاناً</span>
                                 </div>
                               )}
 
@@ -1372,10 +1477,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-3 text-center animate-fade-in z-20">
                                   <Loader2 className="w-8 h-8 text-[#c5a059] animate-spin mb-2" />
                                   <span className="text-xs font-bold text-[#f4efe6]">
-                                    جاري رفع الملف إلى Firebase Storage...
+                                    جاري رفع الصورة إلى ImgBB...
                                   </span>
                                   <span className="text-[10px] text-[#a39a8c] mt-0.5">
-                                    يتم تخزين الصورة واستخراج الرابط السحابي
+                                    يتم استخراج الرابط المباشر وحفظه في Firestore
                                   </span>
                                 </div>
                               ) : (
@@ -1421,7 +1526,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {isUploading ? (
                                 <>
                                   <Loader2 className="w-4 h-4 text-[#c5a059] animate-spin" />
-                                  <span>جاري الرفع إلى Storage...</span>
+                                  <span>جاري الرفع إلى ImgBB...</span>
                                 </>
                               ) : (
                                 <>
@@ -1429,7 +1534,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <span>
                                     {hasUploadedImage
                                       ? 'استبدال الصورة بملف جديد من الجهاز'
-                                      : 'رفع ملف صورة إلى Firebase Storage'}
+                                      : 'رفع ملف صورة عبر ImgBB مجاناً'}
                                   </span>
                                 </>
                               )}
@@ -1446,7 +1551,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                <span>معاينة الرابط السحابي</span>
+                                <span>معاينة الرابط المباشر (ImgBB)</span>
                               </a>
                             ) : (
                               <span className="text-zinc-600">لا توجد صورة بعد</span>

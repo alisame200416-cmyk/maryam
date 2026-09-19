@@ -20,6 +20,7 @@ import {
 } from 'firebase/storage';
 import defaultConfig from '../../firebase-applet-config.json';
 import { BookingRecord, ChaletConfig, PricingConfig, ResortImagesConfig } from '../types';
+import { uploadImageToImgBB } from '../utils/imgbb';
 
 export interface FirebaseCustomConfig {
   apiKey: string;
@@ -436,49 +437,25 @@ export async function saveSingleImageToCloud(key: string, url: string): Promise<
 }
 
 /**
- * Upload actual binary image File directly to Firebase Storage bucket.
- * Retrieves the permanent HTTPS download URL, and saves it into Firestore.
+ * Upload actual binary image File directly to free ImgBB API (No credit card required).
+ * Retrieves the direct permanent HTTPS URL (https://i.ibb.co/...) and saves it into Firestore.
  */
 export async function uploadResortImageFile(
   key: keyof ResortImagesConfig | string,
-  file: File
+  file: File,
+  customImgBBApiKey?: string
 ): Promise<string> {
-  const storage = getFirebaseStorage();
-  if (!storage) {
-    throw new Error('تعذر الاتصال بخدمة Firebase Storage. يرجى التحقق من اتصال الإنترنت أو إعدادات المشروع.');
-  }
-
   if (!file || !file.type.startsWith('image/')) {
     throw new Error('الملف المحدد ليس صورة صالحة. يرجى اختيار ملف JPG أو PNG أو WEBP.');
   }
 
-  // Max size check: 15MB
-  if (file.size > 15 * 1024 * 1024) {
-    throw new Error('حجم الصورة كبير جداً (أكثر من 15 ميغابايت). يرجى اختيار صورة أصغر حجماً.');
-  }
+  // 1. Upload directly via free ImgBB API
+  const directImageUrl = await uploadImageToImgBB(file, customImgBBApiKey);
 
-  // Sanitize file extension
-  const rawExt = file.name.split('.').pop() || 'jpg';
-  const cleanExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
-  const fileName = `chalet_images/${String(key)}_${Date.now()}.${cleanExt}`;
-  const fileRef = ref(storage, fileName);
+  // 2. Instantly record the persistent HTTPS download URL in Firestore
+  await saveSingleImageToCloud(String(key), directImageUrl);
 
-  const metadata = {
-    contentType: file.type || 'image/jpeg',
-    customMetadata: {
-      imageKey: String(key),
-      uploadedAt: new Date().toISOString(),
-    },
-  };
-
-  // Upload binary file directly to Firebase Storage
-  const snapshot = await uploadBytes(fileRef, file, metadata);
-  const downloadUrl = await getDownloadURL(snapshot.ref);
-
-  // Instantly record the persistent HTTPS download URL in Firestore
-  await saveSingleImageToCloud(String(key), downloadUrl);
-
-  return downloadUrl;
+  return directImageUrl;
 }
 
 /**
