@@ -51,50 +51,50 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </p>
 
               {/* Shifts Pricing Breakdown */}
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 sm:space-y-4 mb-6">
                 {/* Morning */}
-                <div className="p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#c5a059]/10 flex items-center justify-center">
-                      <Sun className="w-5 h-5 text-[#c5a059]" />
+                <div className="p-3 sm:p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#c5a059]/10 flex items-center justify-center flex-shrink-0">
+                      <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-[#c5a059]" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#f4efe6]">الفترة الصباحية (Shift 1)</h4>
-                      <span className="text-[11px] text-[#8c8273]">{chaletConfig.morningShiftHours}</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-[#f4efe6]">الفترة الصباحية (Shift 1)</h4>
+                      <span className="text-[10px] sm:text-[11px] text-[#8c8273]">{chaletConfig.morningShiftHours}</span>
                     </div>
                   </div>
-                  <div className="text-left">
-                    <span className="text-lg sm:text-xl font-extrabold text-[#c5a059]">
+                  <div className="text-left flex-shrink-0">
+                    <span className="text-base sm:text-xl font-extrabold text-[#c5a059] whitespace-nowrap">
                       {formatIQD(pricingConfig.weekdayMorning)}
                     </span>
                   </div>
                 </div>
 
                 {/* Night */}
-                <div className="p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-950/30 flex items-center justify-center">
-                      <Moon className="w-5 h-5 text-purple-400" />
+                <div className="p-3 sm:p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-950/30 flex items-center justify-center flex-shrink-0">
+                      <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#f4efe6]">الفترة المسائية (Shift 2)</h4>
-                      <span className="text-[11px] text-[#8c8273]">{chaletConfig.nightShiftHours}</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-[#f4efe6]">الفترة المسائية (Shift 2)</h4>
+                      <span className="text-[10px] sm:text-[11px] text-[#8c8273]">{chaletConfig.nightShiftHours}</span>
                     </div>
                   </div>
-                  <div className="text-left">
-                    <span className="text-lg sm:text-xl font-extrabold text-[#c5a059]">
+                  <div className="text-left flex-shrink-0">
+                    <span className="text-base sm:text-xl font-extrabold text-[#c5a059] whitespace-nowrap">
                       {formatIQD(pricingConfig.weekdayNight)}
                     </span>
                   </div>
                 </div>
 
                 {/* Full Day Promo */}
-                <div className="p-3.5 rounded-xl bg-[#1a2c22] border border-[#2e473a] flex items-center justify-between">
+                <div className="p-3 sm:p-3.5 rounded-xl bg-[#1a2c22] border border-[#2e473a] flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#c5a059]" />
-                    <span className="text-xs font-semibold text-[#f4efe6]">عرض اليوم الكامل (صباحي + مسائي):</span>
+                    <Sparkles className="w-4 h-4 text-[#c5a059] flex-shrink-0" />
+                    <span className="text-xs font-semibold text-[#f4efe6]">عرض اليوم الكامل:</span>
                   </div>
-                  <span className="text-sm font-bold text-emerald-400">
+                  <span className="text-xs sm:text-sm font-bold text-emerald-400 whitespace-nowrap">
                     {formatIQD(pricingConfig.weekdayFullDay)}
                   </span>
                 </div>
@@ -132,50 +132,50 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </p>
 
               {/* Shifts Pricing Breakdown */}
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 sm:space-y-4 mb-6">
                 {/* Morning */}
-                <div className="p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#c5a059]/10 flex items-center justify-center">
-                      <Sun className="w-5 h-5 text-[#c5a059]" />
+                <div className="p-3 sm:p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#c5a059]/10 flex items-center justify-center flex-shrink-0">
+                      <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-[#c5a059]" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#f4efe6]">الفترة الصباحية (Shift 1)</h4>
-                      <span className="text-[11px] text-[#8c8273]">{chaletConfig.morningShiftHours}</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-[#f4efe6]">الفترة الصباحية (Shift 1)</h4>
+                      <span className="text-[10px] sm:text-[11px] text-[#8c8273]">{chaletConfig.morningShiftHours}</span>
                     </div>
                   </div>
-                  <div className="text-left">
-                    <span className="text-lg sm:text-xl font-extrabold text-[#c5a059]">
+                  <div className="text-left flex-shrink-0">
+                    <span className="text-base sm:text-xl font-extrabold text-[#c5a059] whitespace-nowrap">
                       {formatIQD(pricingConfig.weekendMorning)}
                     </span>
                   </div>
                 </div>
 
                 {/* Night */}
-                <div className="p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-950/30 flex items-center justify-center">
-                      <Moon className="w-5 h-5 text-purple-400" />
+                <div className="p-3 sm:p-4 rounded-2xl bg-[#0c1411]/80 border border-[#23382e] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-950/30 flex items-center justify-center flex-shrink-0">
+                      <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#f4efe6]">الفترة المسائية (Shift 2)</h4>
-                      <span className="text-[11px] text-[#8c8273]">{chaletConfig.nightShiftHours}</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-[#f4efe6]">الفترة المسائية (Shift 2)</h4>
+                      <span className="text-[10px] sm:text-[11px] text-[#8c8273]">{chaletConfig.nightShiftHours}</span>
                     </div>
                   </div>
-                  <div className="text-left">
-                    <span className="text-lg sm:text-xl font-extrabold text-[#c5a059]">
+                  <div className="text-left flex-shrink-0">
+                    <span className="text-base sm:text-xl font-extrabold text-[#c5a059] whitespace-nowrap">
                       {formatIQD(pricingConfig.weekendNight)}
                     </span>
                   </div>
                 </div>
 
                 {/* Full Day Promo */}
-                <div className="p-3.5 rounded-xl bg-[#241d13] border border-[#c5a059]/30 flex items-center justify-between">
+                <div className="p-3 sm:p-3.5 rounded-xl bg-[#241d13] border border-[#c5a059]/30 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#c5a059]" />
+                    <Sparkles className="w-4 h-4 text-[#c5a059] flex-shrink-0" />
                     <span className="text-xs font-semibold text-[#f4efe6]">عرض اليوم الكامل في العطلة:</span>
                   </div>
-                  <span className="text-sm font-bold text-[#c5a059]">
+                  <span className="text-xs sm:text-sm font-bold text-[#c5a059] whitespace-nowrap">
                     {formatIQD(pricingConfig.weekendFullDay)}
                   </span>
                 </div>

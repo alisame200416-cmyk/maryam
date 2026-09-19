@@ -57,75 +57,75 @@ export const Hero: React.FC<HeroProps> = ({
         </p>
 
         {/* Quick Shift Badges Banner */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto mb-10 text-right">
-          <div className="p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-[#c5a059] text-xs font-bold mb-1">
-              <Clock className="w-4 h-4" />
-              <span>الفترة الصباحية (Shift 1)</span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 max-w-4xl mx-auto mb-8 sm:mb-10 text-right">
+          <div className="p-2.5 sm:p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 text-[#c5a059] text-[11px] sm:text-xs font-bold mb-1">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">الفترة الصباحية (Shift 1)</span>
             </div>
-            <p className="text-sm font-semibold text-[#f4efe6]">{chaletConfig.morningShiftHours}</p>
-            <p className="text-xs text-[#a39a8c] mt-0.5">تبدأ من {formatIQD(pricingConfig.weekdayMorning)}</p>
+            <p className="text-xs sm:text-sm font-semibold text-[#f4efe6]">{chaletConfig.morningShiftHours}</p>
+            <p className="text-[10px] sm:text-xs text-[#a39a8c] mt-0.5">تبدأ من {formatIQD(pricingConfig.weekdayMorning)}</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-[#c5a059] text-xs font-bold mb-1">
-              <Clock className="w-4 h-4" />
-              <span>الفترة المسائية (Shift 2)</span>
+          <div className="p-2.5 sm:p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 text-[#c5a059] text-[11px] sm:text-xs font-bold mb-1">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">الفترة المسائية (Shift 2)</span>
             </div>
-            <p className="text-sm font-semibold text-[#f4efe6]">{chaletConfig.nightShiftHours}</p>
-            <p className="text-xs text-[#a39a8c] mt-0.5">تبدأ من {formatIQD(pricingConfig.weekdayNight)}</p>
+            <p className="text-xs sm:text-sm font-semibold text-[#f4efe6]">{chaletConfig.nightShiftHours}</p>
+            <p className="text-[10px] sm:text-xs text-[#a39a8c] mt-0.5">تبدأ من {formatIQD(pricingConfig.weekdayNight)}</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-[#c5a059] text-xs font-bold mb-1">
-              <Waves className="w-4 h-4" />
-              <span>المسبح الكبير ومسبح الأطفال</span>
+          <div className="p-2.5 sm:p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 text-[#c5a059] text-[11px] sm:text-xs font-bold mb-1">
+              <Waves className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">المسبح ومسبح الأطفال</span>
             </div>
-            <p className="text-sm font-semibold text-[#f4efe6]">15م × 8م (عمق 130-160 سم)</p>
-            <p className="text-xs text-[#a39a8c] mt-0.5">+ مسبح أطفال بعمق 50 سم</p>
+            <p className="text-xs sm:text-sm font-semibold text-[#f4efe6]">15م × 8م (130-160سم)</p>
+            <p className="text-[10px] sm:text-xs text-[#a39a8c] mt-0.5">+ مسبح أطفال 50 سم</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-[#c5a059] text-xs font-bold mb-1">
-              <ShieldCheck className="w-4 h-4" />
-              <span>حجز فوري مؤتمت</span>
+          <div className="p-2.5 sm:p-3.5 rounded-xl bg-[#14221c]/90 border border-[#23382e] backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 text-[#c5a059] text-[11px] sm:text-xs font-bold mb-1">
+              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">حجز فوري مؤتمت</span>
             </div>
-            <p className="text-sm font-semibold text-[#f4efe6]" dir="ltr">تأكيد واتساب ({formatDisplayIraqiPhone(chaletConfig.ownerWhatsApp)})</p>
-            <p className="text-xs text-[#a39a8c] mt-0.5">بدون دفع إلكتروني معقد</p>
+            <p className="text-xs sm:text-sm font-semibold text-[#f4efe6]" dir="ltr">تأكيد عبر واتساب</p>
+            <p className="text-[10px] sm:text-xs text-[#a39a8c] mt-0.5">مباشر وفوري مع المالك</p>
           </div>
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-2xl mx-auto">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 w-full max-w-3xl mx-auto">
           <button
             onClick={onScrollToBooking}
-            className="w-full sm:w-auto px-7 py-4 rounded-xl bg-gradient-to-r from-[#c5a059] via-[#d5b069] to-[#b38e46] text-[#0c1411] font-bold text-base shadow-xl shadow-[#c5a059]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-[#c5a059] via-[#d5b069] to-[#b38e46] text-[#0c1411] font-bold text-sm sm:text-base shadow-xl shadow-[#c5a059]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
             id="hero-book-btn"
           >
-            <Calendar className="w-5 h-5" />
-            <span>عرض التقويم وحجز موعدك</span>
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="whitespace-nowrap">عرض التقويم وحجز موعدك</span>
           </button>
 
           <a
             href={chaletConfig.googleMapsUrl || 'https://maps.app.goo.gl/DtcTahhdrzhLzKMc6'}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto px-6 py-4 rounded-xl bg-[#16271e] border-2 border-[#c5a059]/50 text-[#f4efe6] hover:bg-[#1e382b] hover:border-[#c5a059] font-bold text-base transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lg shadow-emerald-950/50"
+            className="w-full sm:w-auto px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl bg-[#16271e] border-2 border-[#c5a059]/50 text-[#f4efe6] hover:bg-[#1e382b] hover:border-[#c5a059] font-bold text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50"
             id="hero-google-maps-btn"
             title="موقعنا على الخريطة (Google Maps)"
           >
-            <MapPin className="w-5 h-5 text-[#c5a059] animate-bounce" />
-            <span>موقعنا على الخريطة (Google Maps)</span>
+            <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#c5a059] animate-bounce flex-shrink-0" />
+            <span className="whitespace-nowrap">موقعنا على الخريطة (Google Maps)</span>
           </a>
 
           <a
             href={`https://wa.me/${toIraqiInternationalNumber(chaletConfig.ownerWhatsApp)}?text=${encodeURIComponent(`السلام عليكم، أود الاستفسار عن تفاصيل الحجز والأسعار في ${chaletConfig.name} - البصرة`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto px-5 py-4 rounded-xl bg-[#14221c] border border-[#2e4639] text-[#d6cec0] hover:text-[#c5a059] hover:border-[#c5a059]/50 font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl bg-[#14221c] border border-[#2e4639] text-[#d6cec0] hover:text-[#c5a059] hover:border-[#c5a059]/50 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Phone className="w-4 h-4 text-emerald-400" />
-            <span>استفسار واتساب</span>
+            <Phone className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span className="whitespace-nowrap">استفسار واتساب</span>
           </a>
         </div>
 
