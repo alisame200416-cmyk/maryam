@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, X, ChevronRight, ChevronLeft, Maximize2 } from 'lucide-react';
 import { GALLERY_ITEMS, getGalleryItemsWithImages } from '../data/chaletData';
 import { GalleryItem, ResortImagesConfig } from '../types';
@@ -10,6 +10,16 @@ interface GallerySectionProps {
 export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeLightboxIndex, setActiveLightboxIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (activeLightboxIndex !== null) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [activeLightboxIndex]);
 
   const categories = [
     { id: 'all', label: 'كافة الصور' },
@@ -115,13 +125,15 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) 
 
       {/* Lightbox Modal */}
       {activeLightboxIndex !== null && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-fade-in">
+          <div className="absolute inset-0" onClick={closeLightbox} />
           <button
             onClick={closeLightbox}
-            className="absolute top-6 left-6 p-3 rounded-full bg-[#14221c] border border-[#2e4639] text-[#f4efe6] hover:text-[#c5a059] transition-colors z-10 cursor-pointer"
+            type="button"
+            className="absolute top-4 left-4 sm:top-6 sm:left-6 p-2.5 sm:p-3 rounded-full bg-[#14221c] border border-[#2e4639] text-[#f4efe6] hover:bg-rose-950/70 hover:text-rose-300 transition-colors z-20 cursor-pointer shadow-lg active:scale-95"
             aria-label="إغلاق المعرض"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
           <button

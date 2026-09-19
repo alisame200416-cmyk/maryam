@@ -70,6 +70,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (isOpen) {
       generateNewSecurityCode();
       setErrorMsg('');
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
   }, [isOpen]);
 
@@ -188,30 +193,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-lg bg-[#111e18] border border-[#2e473a] rounded-3xl shadow-2xl p-6 sm:p-8 text-right overflow-hidden my-6">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#23382e] pb-4 mb-5">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 animate-fade-in">
+      {/* Backdrop overlay for closing on click outside */}
+      <div className="absolute inset-0" onClick={handleClose} />
+
+      <div className="relative z-10 w-full max-w-lg bg-[#111e18] border border-[#2e473a] rounded-2xl sm:rounded-3xl shadow-2xl text-right overflow-hidden flex flex-col max-h-[92vh] my-auto">
+        {/* Sticky Fixed Modal Header - Always Visible on All Devices */}
+        <div className="sticky top-0 z-20 flex items-center justify-between p-3.5 sm:p-5 bg-[#0e1914] border-b border-[#23382e] flex-shrink-0 shadow-md">
           <button
             onClick={handleClose}
-            className="p-2 rounded-xl bg-[#182921] border border-[#2d4639] text-[#a39a8c] hover:text-[#f4efe6] transition-colors cursor-pointer"
+            type="button"
+            className="p-2 rounded-xl bg-[#182921] border border-[#2d4639] text-[#f4efe6] hover:bg-rose-950/70 hover:text-rose-300 hover:border-rose-500/40 transition-colors cursor-pointer flex-shrink-0 flex items-center gap-1.5 shadow-sm active:scale-95"
             aria-label="إغلاق النافذة"
           >
             <X className="w-5 h-5" />
+            <span className="text-xs sm:hidden font-bold">إلغاء</span>
           </button>
-          <div>
-            <span className="text-xs text-[#c5a059] font-semibold flex items-center justify-end gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>نظام حجز موثق ومحمي ضد الحجوزات الوهمية</span>
+          <div className="text-right flex-1 pr-3">
+            <span className="text-[10px] sm:text-xs text-[#c5a059] font-semibold flex items-center justify-end gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <span>نظام حجز موثق ومحمي</span>
             </span>
-            <h3 className="text-lg sm:text-xl font-bold text-[#f4efe6]">
+            <h3 className="text-sm sm:text-lg font-bold text-[#f4efe6] truncate">
               {completedBooking ? 'تم تأكيد الحجز بنجاح!' : 'تأكيد تفاصيل الحجز الفوري'}
             </h3>
           </div>
         </div>
 
-        {/* State 1: Form to Book */}
-        {!completedBooking ? (
+        {/* Scrollable Content Container */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
+          {/* State 1: Form to Book */}
+          {!completedBooking ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Shift & Date Summary Card */}
             <div className="p-4 rounded-2xl bg-[#0c1411] border border-[#23382e] space-y-2">
@@ -521,6 +533,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

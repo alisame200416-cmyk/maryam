@@ -141,6 +141,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [imagesConfig]);
 
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -328,17 +338,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-5xl bg-[#111e18] border border-[#2e473a] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden animate-fade-in">
+      {/* Backdrop Dismiss */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      <div className="relative z-10 w-full max-w-5xl bg-[#111e18] border border-[#2e473a] rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header */}
-        <div className="p-4 sm:p-6 bg-[#0c1411] border-b border-[#23382e] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1a2d24] border border-[#2e473a] flex items-center justify-center">
-              <Shield className="w-5 h-5 text-[#c5a059]" />
+        <div className="p-3.5 sm:p-5 bg-[#0c1411] border-b border-[#23382e] flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#1a2d24] border border-[#2e473a] flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#c5a059]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-[#f4efe6]">
+                <h2 className="text-sm sm:text-lg font-bold text-[#f4efe6]">
                   لوحة تحكم إدارة الشاليه (Owner Panel)
                 </h2>
                 <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-[10px] text-emerald-300 font-medium">
@@ -346,7 +359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>سحابة Firebase متزامنة لحظياً</span>
                 </div>
               </div>
-              <span className="text-xs text-[#a39a8c]">
+              <span className="text-[11px] sm:text-xs text-[#a39a8c] block truncate max-w-[260px] sm:max-w-none">
                 التحكم المباشر في الفترات، إلغاء وإطلاق الحجوزات، وضبط الأسعار سحابياً
               </span>
             </div>
@@ -356,7 +369,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {isAdminLoggedIn && (
               <button
                 onClick={onLogout}
-                className="px-3 py-1.5 rounded-lg bg-[#1a2b22] hover:bg-rose-950/50 hover:text-rose-300 text-xs font-semibold text-[#a39a8c] border border-[#2d473a] transition-colors flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#1a2b22] hover:bg-rose-950/50 hover:text-rose-300 text-xs font-semibold text-[#a39a8c] border border-[#2d473a] transition-colors flex items-center gap-1.5 cursor-pointer"
                 title="تسجيل الخروج من لوحة الإدارة"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -365,7 +378,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-[#1a2b22] border border-[#2d473a] text-[#a39a8c] hover:text-[#f4efe6] cursor-pointer"
+              type="button"
+              className="p-2 sm:p-2.5 rounded-xl bg-[#1a2b22] border border-[#2d473a] text-[#f4efe6] hover:bg-rose-950/70 hover:text-rose-300 transition-colors cursor-pointer active:scale-95 shadow-sm"
               aria-label="إغلاق اللوحة"
             >
               <X className="w-5 h-5" />
@@ -462,7 +476,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Sub Navigation Tabs */}
-            <div className="flex border-b border-[#23382e] gap-4 text-xs sm:text-sm font-semibold">
+            <div className="flex border-b border-[#23382e] gap-2 sm:gap-4 text-xs sm:text-sm font-semibold overflow-x-auto whitespace-nowrap pb-1 scrollbar-none">
               <button
                 onClick={() => setActiveTab('bookings')}
                 className={`pb-3 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${

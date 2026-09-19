@@ -226,11 +226,11 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
             </div>
           </div>
 
-          {/* Mobile Horizontal Scroll Instruction Badge */}
-          <div className="sm:hidden flex items-center justify-between gap-2 py-2 px-3 rounded-xl bg-[#14231b] border border-emerald-500/40 text-emerald-300 text-xs font-semibold my-3">
+          {/* Mobile & Tablet Horizontal Scroll Instruction Badge */}
+          <div className="lg:hidden flex items-center justify-between gap-2 py-2 px-3 rounded-xl bg-[#14231b] border border-emerald-500/40 text-emerald-300 text-xs font-semibold my-3">
             <span className="flex items-center gap-1.5">
               <span>👉</span>
-              <span>اسحب الجدول أفقياً لرؤية جميع الأيام والفترات</span>
+              <span>اسحب جدول التقويم أفقياً لرؤية كافة الأيام والفترات</span>
               <span>👈</span>
             </span>
             <span className="text-[10px] text-[#c5a059] bg-[#0c1411] px-2 py-0.5 rounded border border-[#22362b] font-bold whitespace-nowrap">
@@ -240,7 +240,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
           {/* Horizontal Scrollable Calendar Wrapper */}
           <div className="overflow-x-auto pb-4 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-thin scrollbar-thumb-[#233d2e] scrollbar-track-transparent">
-            <div className="min-w-[700px] sm:min-w-0">
+            <div className="min-w-[760px] lg:min-w-0">
               {/* Days of Week Header */}
               <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center pt-2 pb-2">
                 {ARABIC_DAYS.map((dayName, idx) => {

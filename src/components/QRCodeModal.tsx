@@ -23,6 +23,9 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     QRCodeLib.toDataURL(
       currentUrl,
       {
@@ -39,6 +42,10 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
         }
       }
     );
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
   }, [isOpen, currentUrl]);
 
   if (!isOpen) return null;
@@ -58,12 +65,14 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="relative w-full max-w-md bg-[#111e18] border border-[#2e473a] rounded-3xl shadow-2xl p-6 sm:p-8 text-center">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md bg-[#111e18] border border-[#2e473a] rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8 text-center max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 left-5 p-2 rounded-xl bg-[#182921] border border-[#2d4639] text-[#a39a8c] hover:text-[#f4efe6] transition-colors cursor-pointer"
+          type="button"
+          className="absolute top-4 left-4 sm:top-5 sm:left-5 p-2 rounded-xl bg-[#182921] border border-[#2d4639] text-[#f4efe6] hover:bg-rose-950/70 hover:text-rose-300 transition-colors cursor-pointer active:scale-95 shadow-md"
           aria-label="إغلاق"
         >
           <X className="w-5 h-5" />
