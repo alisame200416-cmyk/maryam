@@ -7,8 +7,8 @@
 
 export function processUploadedImageFile(
   file: File,
-  maxDimension = 1600,
-  quality = 0.85
+  maxDimension = 1200,
+  quality = 0.72
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {

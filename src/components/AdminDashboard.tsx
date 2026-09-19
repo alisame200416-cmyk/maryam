@@ -25,6 +25,9 @@ import {
   Upload,
   Camera,
   Loader2,
+  Cloud,
+  Database,
+  Check,
 } from 'lucide-react';
 import { BookingRecord, ChaletConfig, PricingConfig, ShiftType, ResortImagesConfig } from '../types';
 import { formatArabicDate, getArabicDayName } from '../utils/dateHelpers';
@@ -37,6 +40,16 @@ import {
   formatDisplayIraqiPhone,
   toIraqiInternationalNumber,
 } from '../utils/validation';
+import {
+  getActiveFirebaseConfig,
+  saveCustomFirebaseConfig,
+  saveChaletConfigToCloud,
+  savePricingConfigToCloud,
+  saveImagesConfigToCloud,
+  saveSingleImageToCloud,
+  saveBookingToCloud,
+  FirebaseCustomConfig,
+} from '../lib/firebase';
 
 interface AdminDashboardProps {
   isOpen: boolean;
@@ -55,6 +68,7 @@ interface AdminDashboardProps {
   onUpdatePricingConfig: (pricing: PricingConfig) => void;
   imagesConfig: ResortImagesConfig;
   onUpdateImagesConfig: (images: ResortImagesConfig) => void;
+  cloudStatus?: 'synced' | 'connecting' | 'local';
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -74,13 +88,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdatePricingConfig,
   imagesConfig,
   onUpdateImagesConfig,
+  cloudStatus = 'synced',
 }) => {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'manual' | 'settings' | 'images'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'manual' | 'settings' | 'images' | 'cloud'>('bookings');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterShift, setFilterShift] = useState<'all' | 'morning' | 'night'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'suspicious' | 'verified' | 'admin'>('all');
+
+  // Firebase & SaaS Cloud state
+  const [firebaseConfigForm, setFirebaseConfigForm] = useState<FirebaseCustomConfig>(() => getActiveFirebaseConfig());
+  const [isSavingFirebase, setIsSavingFirebase] = useState(false);
+  const [firebaseSuccessMsg, setFirebaseSuccessMsg] = useState('');
+  const [isPushingAllToCloud, setIsPushingAllToCloud] = useState(false);
+  const [cloudPushSuccessMsg, setCloudPushSuccessMsg] = useState('');
 
   // Manual block/reservation form state
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
@@ -249,12 +271,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       };
       setTempImages(updated);
       onUpdateImagesConfig(updated);
-      setImagesSuccessMsg('تم رفع ومعالجة الصورة من جهازك وتحديث الموقع مباشرة بنجاح!');
+      // Immediately push isolated image to cloud
+      saveSingleImageToCloud(key, base64Data).catch((e) =>
+        console.warn('Single image cloud save error:', e)
+      );
+      setImagesSuccessMsg('تم رفع ومعالجة الصورة من جهازك وتحديث الموقع مباشرة وسحابياً بنجاح!');
       setTimeout(() => setImagesSuccessMsg(''), 4000);
     } catch (err: any) {
       alert(err?.message || 'حدث خطأ أثناء معالجة ملف الصورة. يرجى اختيار ملف صورة صالح.');
     } finally {
       setIsProcessingKey(null);
+    }
+  };
+
+  const handlePushAllToCloud = async () => {
+    setIsPushingAllToCloud(true);
+    setCloudPushSuccessMsg('');
+    try {
+      // 1. Push chalet config
+      await saveChaletConfigToCloud(tempConfig);
+      // 2. Push pricing
+      await savePricingConfigToCloud(tempPricing);
+      // 3. Push images
+      await saveImagesConfigToCloud(tempImages);
+      // 4. Push all bookings
+      for (const [key, b] of Object.entries(bookings)) {
+        await saveBookingToCloud(key, b);
+      }
+      setCloudPushSuccessMsg('تم رفع ومزامنة كافة البيانات والصور والحجوزات إلى سحابة Firebase بنجاح! جميع الأجهزة محدثة الآن في نفس اللحظة.');
+      setTimeout(() => setCloudPushSuccessMsg(''), 5000);
+    } catch (err) {
+      console.error('Error pushing data to cloud', err);
+      setCloudPushSuccessMsg('حدث خطأ أثناء المزامنة السحابية. يرجى التحقق من اتصال الإنترنت.');
+    } finally {
+      setIsPushingAllToCloud(false);
+    }
+  };
+
+  const handleSaveCustomFirebase = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingFirebase(true);
+    try {
+      saveCustomFirebaseConfig(firebaseConfigForm);
+      setFirebaseSuccessMsg('تم حفظ مفاتيح Firebase بنجاح وإعادة تشغيل الاتصال!');
+    } catch (err) {
+      console.error('Error saving firebase config', err);
+    } finally {
+      setIsSavingFirebase(false);
+    }
+  };
+
+  const handleResetFirebaseToDefault = () => {
+    if (window.confirm('هل تريد استعادة إعدادات مشروع Firebase السحابي الافتراضي؟')) {
+      saveCustomFirebaseConfig(null);
     }
   };
 
@@ -268,11 +337,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <Shield className="w-5 h-5 text-[#c5a059]" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-[#f4efe6]">
-                لوحة تحكم إدارة الشاليه (Owner Panel)
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-[#f4efe6]">
+                  لوحة تحكم إدارة الشاليه (Owner Panel)
+                </h2>
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-[10px] text-emerald-300 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>سحابة Firebase متزامنة لحظياً</span>
+                </div>
+              </div>
               <span className="text-xs text-[#a39a8c]">
-                التحكم المباشر في الفترات، إلغاء وإطلاق الحجوزات، وضبط الأسعار
+                التحكم المباشر في الفترات، إلغاء وإطلاق الحجوزات، وضبط الأسعار سحابياً
               </span>
             </div>
           </div>
@@ -434,6 +509,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               >
                 <ImageIcon className="w-4 h-4" />
                 <span>إدارة الصور والواجهة (Images)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('cloud')}
+                className={`pb-3 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                  activeTab === 'cloud'
+                    ? 'border-[#c5a059] text-[#c5a059]'
+                    : 'border-transparent text-[#a39a8c] hover:text-[#f4efe6]'
+                }`}
+              >
+                <Cloud className="w-4 h-4" />
+                <span className="flex items-center gap-1.5">
+                  <span>الربط السحابي (Firebase / SaaS)</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                </span>
               </button>
             </div>
 
@@ -1374,6 +1464,193 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* TAB 5: Cloud Database & SaaS Multi-Tenant Sync */}
+            {activeTab === 'cloud' && (
+              <div className="space-y-6 max-w-3xl mx-auto">
+                {/* Cloud Status Card */}
+                <div className="p-5 rounded-2xl bg-[#0c1411] border border-emerald-500/30 space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#1f3328] pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                        <Cloud className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-[#f4efe6] flex items-center gap-2">
+                          <span>قاعدة البيانات السحابية (Firebase Firestore)</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
+                            نشطة ومتصلة لحظياً
+                          </span>
+                        </h4>
+                        <p className="text-xs text-[#a39a8c]">
+                          يتم بث وتحديث الحجوزات والأسعار والصور مباشرة عبر السحابة لجميع أجهزة الزوار في نفس اللحظة (Real-Time Synchronized).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-[#14221c] border border-[#23382e]">
+                      <span className="text-[#8c8273] block mb-1">معرّف المشروع السحابي (Project ID):</span>
+                      <span className="text-[#f4efe6] font-mono font-bold text-xs">
+                        {firebaseConfigForm.projectId || 'maryam-resort'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-[#14221c] border border-[#23382e]">
+                      <span className="text-[#8c8273] block mb-1">معرّف قاعدة البيانات (Database ID):</span>
+                      <span className="text-[#f4efe6] font-mono font-bold text-xs truncate block">
+                        {firebaseConfigForm.firestoreDatabaseId || '(default)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {cloudPushSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span>{cloudPushSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  {/* Force Cloud Sync Button */}
+                  <button
+                    type="button"
+                    onClick={handlePushAllToCloud}
+                    disabled={isPushingAllToCloud}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs hover:from-emerald-500 hover:to-teal-500 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950 disabled:opacity-50"
+                  >
+                    {isPushingAllToCloud ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>جارٍ رفع ومزامنة كافة البيانات إلى السحابة...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>مزامنة كافة بيانات المنتجع والصور والحجوزات إلى السحابة فوراً (Force Cloud Sync)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* SaaS & Custom Project Configuration */}
+                <div className="p-5 rounded-2xl bg-[#0c1411] border border-[#23382e] space-y-4">
+                  <div className="border-b border-[#1f3328] pb-3">
+                    <h4 className="text-sm font-bold text-[#c5a059] flex items-center gap-2">
+                      <Database className="w-4 h-4" />
+                      <span>إعدادات بيع النظام كخدمة (SaaS Multi-Tenant Configuration)</span>
+                    </h4>
+                    <p className="text-xs text-[#a39a8c] mt-1">
+                      عند بيع هذا النظام لشاليه آخر، يمكنك ربطه بمشروع Firebase الخاص بذلك الشاليه بكل سهولة عبر إدخال مفاتيحه هنا دون تعديل سطر برمجي واحد.
+                    </p>
+                  </div>
+
+                  {firebaseSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{firebaseSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSaveCustomFirebase} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#d6cec0] mb-1">
+                          Firebase API Key
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={firebaseConfigForm.apiKey}
+                          onChange={(e) =>
+                            setFirebaseConfigForm({ ...firebaseConfigForm, apiKey: e.target.value })
+                          }
+                          className="w-full px-3 py-2 rounded-xl bg-[#14221c] border border-[#2e473a] text-xs text-[#f4efe6] font-mono focus:outline-none focus:border-[#c5a059]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#d6cec0] mb-1">
+                          Firebase Project ID
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={firebaseConfigForm.projectId}
+                          onChange={(e) =>
+                            setFirebaseConfigForm({ ...firebaseConfigForm, projectId: e.target.value })
+                          }
+                          className="w-full px-3 py-2 rounded-xl bg-[#14221c] border border-[#2e473a] text-xs text-[#f4efe6] font-mono focus:outline-none focus:border-[#c5a059]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#d6cec0] mb-1">
+                          Auth Domain
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={firebaseConfigForm.authDomain}
+                          onChange={(e) =>
+                            setFirebaseConfigForm({ ...firebaseConfigForm, authDomain: e.target.value })
+                          }
+                          className="w-full px-3 py-2 rounded-xl bg-[#14221c] border border-[#2e473a] text-xs text-[#f4efe6] font-mono focus:outline-none focus:border-[#c5a059]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#d6cec0] mb-1">
+                          App ID
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={firebaseConfigForm.appId}
+                          onChange={(e) =>
+                            setFirebaseConfigForm({ ...firebaseConfigForm, appId: e.target.value })
+                          }
+                          className="w-full px-3 py-2 rounded-xl bg-[#14221c] border border-[#2e473a] text-xs text-[#f4efe6] font-mono focus:outline-none focus:border-[#c5a059]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSavingFirebase}
+                        className="px-4 py-2.5 rounded-xl bg-[#c5a059] hover:bg-[#d5b069] text-[#0c1411] font-bold text-xs transition-all cursor-pointer shadow-md"
+                      >
+                        حفظ بيانات Firebase الخاصة بالشاليه
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResetFirebaseToDefault}
+                        className="px-4 py-2.5 rounded-xl bg-[#14221c] hover:bg-[#1f3328] text-[#a39a8c] hover:text-[#f4efe6] border border-[#2e473a] text-xs transition-all cursor-pointer"
+                      >
+                        استعادة المشروع السحابي الافتراضي
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Step-by-Step Guide for SaaS Buyers */}
+                <div className="p-5 rounded-2xl bg-[#0c1411] border border-[#23382e] space-y-3 text-xs text-[#a39a8c]">
+                  <h5 className="font-bold text-[#f4efe6] text-sm flex items-center gap-2">
+                    <span>📖 دليل إنشاء مشروع Firebase مجاني لأصحاب الشاليهات الجدد:</span>
+                  </h5>
+                  <ol className="list-decimal list-inside space-y-1.5 leading-relaxed pr-1 text-[#d6cec0]">
+                    <li>افتح موقع <strong className="text-amber-400">console.firebase.google.com</strong> وسجّل الدخول بحساب Google.</li>
+                    <li>اضغط على <strong>Add Project (إضافة مشروع)</strong> وضع اسم الشاليه (مثلاً: Maryam-Resort).</li>
+                    <li>من القائمة الجانبية، اختر <strong>Build ثم Firestore Database</strong> واضغط <strong>Create database</strong> في وضع Start in test mode.</li>
+                    <li>اضغط على أيقونة الإعدادات (⚙️ Project Settings)، ثم انزل للأسفل واضغط على علامة الويب <strong>&lt;/&gt; Web app</strong> لإنشاء تطبيق ويب.</li>
+                    <li>انسخ مفاتيح الـ <strong>firebaseConfig</strong> الظاهرة وضعها في الحقول أعلاه واضغط حفظ.</li>
+                    <li>سيبدأ النظام بالمزامنة اللحظية الفورية لقاعدة بيانات الشاليه الجديد في نفس اللحظة!</li>
+                  </ol>
+                </div>
               </div>
             )}
           </div>

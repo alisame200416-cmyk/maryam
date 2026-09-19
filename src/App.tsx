@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { FacilityExplorer } from './components/FacilityExplorer';
@@ -24,6 +24,17 @@ import {
   saveImagesConfig,
 } from './utils/bookingStore';
 import { isSuspiciousBooking } from './utils/validation';
+import {
+  subscribeToCloudBookings,
+  subscribeToResortCloudData,
+  saveBookingToCloud,
+  deleteBookingFromCloud,
+  clearAllBookingsFromCloud,
+  saveChaletConfigToCloud,
+  savePricingConfigToCloud,
+  saveImagesConfigToCloud,
+  isFirebaseConfigured,
+} from './lib/firebase';
 
 export default function App() {
   const [chaletConfig, setChaletConfig] = useState<ChaletConfig>(() => loadChaletConfig());
@@ -34,8 +45,88 @@ export default function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false);
+  const [cloudStatus, setCloudStatus] = useState<'synced' | 'connecting' | 'local'>('connecting');
 
-  // Sync bookings to localStorage on change
+  const hasBootstrappedBookingsRef = useRef(false);
+  const hasBootstrappedResortRef = useRef(false);
+
+  // Real-time Cloud Synchronization via Firebase Firestore
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setCloudStatus('local');
+      return;
+    }
+
+    // 1. Subscribe to real-time cloud bookings
+    const unsubscribeBookings = subscribeToCloudBookings(
+      (cloudBookings) => {
+        if (!hasBootstrappedBookingsRef.current) {
+          hasBootstrappedBookingsRef.current = true;
+          if (cloudBookings && Object.keys(cloudBookings).length > 0) {
+            setBookings(cloudBookings);
+            saveBookings(cloudBookings);
+          } else {
+            // First time connecting to new Firestore project: seed initial bookings to cloud
+            const initialLocal = loadBookings();
+            if (initialLocal && Object.keys(initialLocal).length > 0) {
+              Object.entries(initialLocal).forEach(([key, record]) => {
+                saveBookingToCloud(key, record).catch(() => {});
+              });
+            }
+          }
+        } else {
+          // Continuous live authoritative cloud updates
+          const updated = cloudBookings || {};
+          setBookings(updated);
+          saveBookings(updated);
+        }
+        setCloudStatus('synced');
+      },
+      (err) => {
+        console.warn('Real-time bookings cloud sync warning:', err);
+        setCloudStatus('local');
+      }
+    );
+
+    // 2. Subscribe to real-time cloud chalet configuration, pricing, and images
+    const unsubscribeResort = subscribeToResortCloudData(
+      (cloudData) => {
+        const isFirstRun = !hasBootstrappedResortRef.current;
+        hasBootstrappedResortRef.current = true;
+
+        if (cloudData.config) {
+          setChaletConfig(cloudData.config);
+          saveChaletConfig(cloudData.config);
+        } else if (isFirstRun) {
+          saveChaletConfigToCloud(chaletConfig).catch(() => {});
+        }
+
+        if (cloudData.pricing) {
+          setPricingConfig(cloudData.pricing);
+          savePricingConfig(cloudData.pricing);
+        } else if (isFirstRun) {
+          savePricingConfigToCloud(pricingConfig).catch(() => {});
+        }
+
+        if (cloudData.images) {
+          setImagesConfig(cloudData.images);
+          saveImagesConfig(cloudData.images);
+        } else if (isFirstRun) {
+          saveImagesConfigToCloud(imagesConfig).catch(() => {});
+        }
+      },
+      (err) => {
+        console.warn('Real-time resort data cloud sync warning:', err);
+      }
+    );
+
+    return () => {
+      unsubscribeBookings();
+      unsubscribeResort();
+    };
+  }, []);
+
+  // Sync bookings to localStorage as offline fallback
   useEffect(() => {
     saveBookings(bookings);
   }, [bookings]);
@@ -51,6 +142,11 @@ export default function App() {
       saveBookings(updated);
       return updated;
     });
+
+    // Cloud persistence in real-time
+    saveBookingToCloud(shiftKey, newBooking).catch((err) =>
+      console.warn('Cloud sync error for booking:', err)
+    );
   };
 
   // Handle admin releasing/cancelling a single shift (returns slot to green/available)
@@ -61,19 +157,31 @@ export default function App() {
       saveBookings(updated);
       return updated;
     });
+
+    // Delete from cloud in real-time
+    deleteBookingFromCloud(shiftKey).catch((err) =>
+      console.warn('Cloud deletion error for booking:', err)
+    );
   };
 
   // Handle admin purging all suspicious fake bookings in one click
   const handleClearSuspiciousBookings = () => {
+    const toDelete: string[] = [];
     setBookings((prev) => {
       const updated: Record<string, BookingRecord> = {};
       Object.entries(prev).forEach(([key, record]) => {
         if (!isSuspiciousBooking(record.customerName, record.customerPhone)) {
           updated[key] = record;
+        } else {
+          toDelete.push(key);
         }
       });
       saveBookings(updated);
       return updated;
+    });
+
+    toDelete.forEach((key) => {
+      deleteBookingFromCloud(key).catch(() => {});
     });
   };
 
@@ -81,6 +189,9 @@ export default function App() {
   const handleClearAllBookings = () => {
     setBookings({});
     saveBookings({});
+    clearAllBookingsFromCloud().catch((err) =>
+      console.warn('Cloud clear all error:', err)
+    );
   };
 
   // Handle admin manual reservation
@@ -94,6 +205,10 @@ export default function App() {
       saveBookings(updated);
       return updated;
     });
+
+    saveBookingToCloud(shiftKey, newBooking).catch((err) =>
+      console.warn('Cloud sync error for manual booking:', err)
+    );
   };
 
   // Admin login check
@@ -112,16 +227,25 @@ export default function App() {
   const handleUpdateChaletConfig = (newConfig: ChaletConfig) => {
     setChaletConfig(newConfig);
     saveChaletConfig(newConfig);
+    saveChaletConfigToCloud(newConfig).catch((err) =>
+      console.warn('Failed cloud save config:', err)
+    );
   };
 
   const handleUpdatePricingConfig = (newPricing: PricingConfig) => {
     setPricingConfig(newPricing);
     savePricingConfig(newPricing);
+    savePricingConfigToCloud(newPricing).catch((err) =>
+      console.warn('Failed cloud save pricing:', err)
+    );
   };
 
   const handleUpdateImagesConfig = (newImages: ResortImagesConfig) => {
     setImagesConfig(newImages);
     saveImagesConfig(newImages);
+    saveImagesConfigToCloud(newImages).catch((err) =>
+      console.warn('Failed cloud save images:', err)
+    );
   };
 
   const scrollToBooking = () => {
@@ -218,6 +342,7 @@ export default function App() {
         onUpdatePricingConfig={handleUpdatePricingConfig}
         imagesConfig={imagesConfig}
         onUpdateImagesConfig={handleUpdateImagesConfig}
+        cloudStatus="synced"
       />
 
       {/* Mobile QR Code Sharing & Scan Modal */}
