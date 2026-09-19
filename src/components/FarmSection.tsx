@@ -35,13 +35,22 @@ export const FarmSection: React.FC<FarmSectionProps> = ({ imagesConfig }) => {
               className="bg-[#14221c] border border-[#23382e] rounded-3xl overflow-hidden hover:border-[#c5a059]/40 transition-all duration-300 group shadow-lg flex flex-col sm:flex-row"
             >
               {/* Image side */}
-              <div className="sm:w-1/2 relative h-56 sm:h-auto overflow-hidden">
-                <img
-                  src={attraction.imageUrl}
-                  alt={attraction.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="sm:w-1/2 relative h-56 sm:h-auto overflow-hidden bg-[#14221c]">
+                {attraction.imageUrl?.trim() ? (
+                  <img
+                    src={attraction.imageUrl}
+                    alt={attraction.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#182f23] to-[#101c16]">
+                    <div className="w-12 h-12 rounded-2xl bg-[#1d3528] border border-[#2d523e] flex items-center justify-center mb-2 text-emerald-400">
+                      <Compass className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] text-[#8c8273]">بانتظار صورة المحمية من Firestore</span>
+                  </div>
+                )}
                 <div className="absolute top-3 right-3">
                   <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-[#0c1411]/80 backdrop-blur-md text-[#c5a059] border border-[#c5a059]/30">
                     {attraction.tag}

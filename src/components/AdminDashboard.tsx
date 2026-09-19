@@ -33,7 +33,6 @@ import { BookingRecord, ChaletConfig, PricingConfig, ShiftType, ResortImagesConf
 import { formatArabicDate, getArabicDayName } from '../utils/dateHelpers';
 import { formatIQD } from '../utils/bookingStore';
 import { DEFAULT_RESORT_IMAGES } from '../data/chaletData';
-import { processUploadedImageFile } from '../utils/imageUploadHelper';
 import {
   validateIraqiPhoneNumber,
   isSuspiciousBooking,
@@ -47,6 +46,8 @@ import {
   savePricingConfigToCloud,
   saveImagesConfigToCloud,
   saveSingleImageToCloud,
+  uploadResortImageFile,
+  deleteResortImage,
   saveBookingToCloud,
   FirebaseCustomConfig,
 } from '../lib/firebase';
@@ -244,51 +245,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setTimeout(() => setSettingsSuccessMsg(''), 3500);
   };
 
-  const handleSaveImages = (e: React.FormEvent) => {
+  const handleSaveImages = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateImagesConfig(tempImages);
-    setImagesSuccessMsg('تم حفظ وتحديث كافة صور المنتجع بنجاح! تم تحديث الواجهة العامة فوراً دون الحاجة لتحديث الصفحة.');
-    setTimeout(() => setImagesSuccessMsg(''), 4000);
-  };
-
-  const handleResetDefaultImages = () => {
-    if (window.confirm('هل تريد استعادة جميع روابط الصور الافتراضية عالية الدقة للمنتجع؟')) {
-      setTempImages(DEFAULT_RESORT_IMAGES);
-      onUpdateImagesConfig(DEFAULT_RESORT_IMAGES);
-      setImagesSuccessMsg('تمت استعادة كافة الصور الافتراضية وتحديث الواجهة فوراً.');
-      setTimeout(() => setImagesSuccessMsg(''), 4000);
+    try {
+      onUpdateImagesConfig(tempImages);
+      await saveImagesConfigToCloud(tempImages);
+      setImagesSuccessMsg('تم حفظ وتحديث كافة صور المنتجع في قاعدة بيانات Firestore السحابية بنجاح!');
+      setTimeout(() => setImagesSuccessMsg(''), 4500);
+    } catch (err) {
+      console.error('Failed to save images to cloud:', err);
+      setImagesSuccessMsg('حدث خطأ أثناء حفظ الصور في السحابة. يرجى التحقق من اتصال الإنترنت.');
     }
   };
 
-  const handleSingleImageReset = (key: keyof ResortImagesConfig) => {
-    const updated = {
-      ...tempImages,
-      [key]: DEFAULT_RESORT_IMAGES[key],
-    };
-    setTempImages(updated);
-    onUpdateImagesConfig(updated);
-    setImagesSuccessMsg(`تم استعادة الرابط الافتراضي وتحديث الواجهة فوراً!`);
-    setTimeout(() => setImagesSuccessMsg(''), 3000);
+  const handleSingleImageDelete = async (key: keyof ResortImagesConfig) => {
+    if (window.confirm('هل تريد حذف هذه الصورة من السحابة والموقع؟')) {
+      try {
+        await deleteResortImage(key);
+        const updated = {
+          ...tempImages,
+          [key]: '',
+        };
+        setTempImages(updated);
+        onUpdateImagesConfig(updated);
+        setImagesSuccessMsg(`تم حذف الصورة بنجاح وتحديث السحابة.`);
+        setTimeout(() => setImagesSuccessMsg(''), 3000);
+      } catch (err) {
+        console.error('Delete image error:', err);
+        alert('حدث خطأ أثناء حذف الصورة من السحابة.');
+      }
+    }
   };
 
   const handleFileUpload = async (key: keyof ResortImagesConfig, file: File) => {
     try {
       setIsProcessingKey(key);
-      const base64Data = await processUploadedImageFile(file);
+      // 1. Upload the real binary file to Firebase Storage bucket and save permanent URL to Firestore
+      const storageUrl = await uploadResortImageFile(key, file);
+
+      // 2. Update local state and parent state immediately
       const updated = {
         ...tempImages,
-        [key]: base64Data,
+        [key]: storageUrl,
       };
       setTempImages(updated);
       onUpdateImagesConfig(updated);
-      // Immediately push isolated image to cloud
-      saveSingleImageToCloud(key, base64Data).catch((e) =>
-        console.warn('Single image cloud save error:', e)
-      );
-      setImagesSuccessMsg('تم رفع ومعالجة الصورة من جهازك وتحديث الموقع مباشرة وسحابياً بنجاح!');
-      setTimeout(() => setImagesSuccessMsg(''), 4000);
+
+      setImagesSuccessMsg('تم رفع ملف الصورة بنجاح إلى Firebase Storage وتثبيت الرابط السحابي في Firestore!');
+      setTimeout(() => setImagesSuccessMsg(''), 4500);
     } catch (err: any) {
-      alert(err?.message || 'حدث خطأ أثناء معالجة ملف الصورة. يرجى اختيار ملف صورة صالح.');
+      console.error('Firebase Storage upload error:', err);
+      alert(err?.message || 'حدث خطأ أثناء رفع الصورة إلى Firebase Storage. يرجى التأكد من اتصال الإنترنت.');
     } finally {
       setIsProcessingKey(null);
     }
@@ -1188,31 +1195,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div>
                     <h3 className="text-base font-bold text-[#f4efe6] flex items-center gap-2">
                       <Upload className="w-5 h-5 text-[#c5a059]" />
-                      <span>رفع وتغيير صور المنتجع مباشرة (Direct Image Upload)</span>
+                      <span>رفع وتثبيت صور المنتجع عبر Firebase Storage</span>
                     </h3>
                     <p className="text-xs text-[#a39a8c] mt-1">
-                      اختر الصور مباشرة من معرض صور الهاتف أو ملفات الكمبيوتر. يتم ضغط الصورة تلقائياً وتحديث واجهة الزوار فوراً وبشكل دائم.
+                      يتم رفع ملفات الصور مباشرة إلى حاوية التخزين السحابي وحفظ الروابط في Firestore لتبقى الصور ثابتة دائماً حتى بعد التمرير والتحديث.
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={handleResetDefaultImages}
-                      className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-[#14221c] border border-[#2e473a] text-xs font-semibold text-[#a39a8c] hover:text-[#f4efe6] hover:border-[#c5a059]/50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      title="استعادة كافة الصور الأصلية عالية الدقة"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-[#c5a059]" />
-                      <span>استعادة الافتراضي</span>
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={handleSaveImages}
-                      className="flex-1 sm:flex-initial px-5 py-2 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#b38e46] text-[#0c1411] font-bold text-xs hover:from-[#d5b069] hover:to-[#c5a059] transition-all shadow-md shadow-[#c5a059]/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#b38e46] text-[#0c1411] font-bold text-xs hover:from-[#d5b069] hover:to-[#c5a059] transition-all shadow-md shadow-[#c5a059]/20 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>حفظ الصور وتأكيد التحديث</span>
+                      <span>تأكيد وحفظ كافة الصور في Firestore</span>
                     </button>
                   </div>
                 </div>
@@ -1229,7 +1226,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="p-3.5 rounded-xl bg-[#14221c]/70 border border-[#23382e] text-[11px] sm:text-xs text-[#a39a8c] flex items-start gap-2.5">
                   <Sparkles className="w-4 h-4 text-[#c5a059] shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong className="text-[#f4efe6]">طريقة الاستخدام السهلة:</strong> اضغط على زر <span className="text-[#c5a059] font-bold">"رفع صورة من الجهاز / الاستوديو"</span> أو انقر مباشرة على معاينة الصورة لاختيار أي لقطة من هاتفك أو جهازك (JPG, PNG, WEBP). يتم ضغطها ومعالجتها فورياً لتظهر بأعلى دقة للزوار!
+                    <strong className="text-[#f4efe6]">نظام التخزين السحابي الحقيقي (Firebase Storage):</strong> اضغط على زر <span className="text-[#c5a059] font-bold">"رفع ملف صورة إلى السحابة"</span> لاختيار صورة من هاتفك أو جهازك (JPG, PNG, WEBP). يتم رفع الملف الفعلي مباشرة إلى Firebase Storage وتوليد رابط دائم في Firestore بدلاً من Base64، لضمان عدم اختفائها إطلاقاً!
                   </p>
                 </div>
 
@@ -1308,8 +1305,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         recommended: 'أفقية 1200 × 800 px',
                       },
                     ].map((item) => {
-                      const currentVal = tempImages[item.key] || DEFAULT_RESORT_IMAGES[item.key];
-                      const isDefault = currentVal === DEFAULT_RESORT_IMAGES[item.key];
+                      const currentVal = tempImages[item.key]?.trim() || '';
+                      const hasUploadedImage = Boolean(currentVal);
                       const isUploading = isProcessingKey === item.key;
                       const inputId = `file-upload-${item.key}`;
 
@@ -1337,7 +1334,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <input
                               id={inputId}
                               type="file"
-                              accept="image/png, image/jpeg, image/jpg, image/webp, image/gif"
+                              accept="image/png, image/jpeg, image/jpg, image/webp"
                               className="hidden"
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
@@ -1353,56 +1350,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               htmlFor={inputId}
                               className="relative block w-full h-40 rounded-xl overflow-hidden bg-[#14221c] border border-[#23382e] hover:border-[#c5a059]/70 mb-3 group cursor-pointer transition-colors"
                             >
-                              <img
-                                src={currentVal}
-                                alt={item.label}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    DEFAULT_RESORT_IMAGES[item.key] ||
-                                    'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80';
-                                }}
-                              />
+                              {hasUploadedImage ? (
+                                <img
+                                  src={currentVal}
+                                  alt={item.label}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#101b15]">
+                                  <div className="w-10 h-10 rounded-full bg-[#182f23] border border-[#2d4d3a] flex items-center justify-center mb-1 text-[#c5a059]">
+                                    <Camera className="w-5 h-5" />
+                                  </div>
+                                  <span className="text-xs font-bold text-[#d2c9b8]">لم يتم رفع صورة بعد</span>
+                                  <span className="text-[10px] text-[#786e60] mt-0.5">انقر لرفع ملف صورة إلى Firebase Storage</span>
+                                </div>
+                              )}
 
                               {/* Loading Overlay */}
                               {isUploading ? (
-                                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-3 text-center animate-fade-in">
+                                <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-3 text-center animate-fade-in z-20">
                                   <Loader2 className="w-8 h-8 text-[#c5a059] animate-spin mb-2" />
                                   <span className="text-xs font-bold text-[#f4efe6]">
-                                    جاري معالجة ورفع الصورة...
+                                    جاري رفع الملف إلى Firebase Storage...
                                   </span>
                                   <span className="text-[10px] text-[#a39a8c] mt-0.5">
-                                    يتم ضغط الصورة وتحديث الموقع
+                                    يتم تخزين الصورة واستخراج الرابط السحابي
                                   </span>
                                 </div>
                               ) : (
                                 /* Normal Hover Overlay */
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-center p-2">
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-center p-2 z-10">
                                   <div className="w-10 h-10 rounded-full bg-black/70 border border-[#c5a059] flex items-center justify-center mb-1 shadow-lg">
                                     <Camera className="w-5 h-5 text-[#c5a059]" />
                                   </div>
                                   <span className="text-xs font-bold text-[#f4efe6] bg-black/70 px-2 py-0.5 rounded">
-                                    انقر لاختيار صورة من جهازك
+                                    {hasUploadedImage ? 'انقر لتغيير الصورة' : 'انقر لرفع صورة من جهازك'}
                                   </span>
                                 </div>
                               )}
 
                               {/* Corner Badges */}
-                              <div className="absolute top-2 right-2 pointer-events-none">
-                                {!isDefault ? (
+                              <div className="absolute top-2 right-2 pointer-events-none z-10">
+                                {hasUploadedImage ? (
                                   <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-300 bg-emerald-950/90 px-2 py-0.5 rounded-full border border-emerald-500/40 shadow-sm backdrop-blur-sm">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    <span>صورة مخصصة مرفوعة</span>
+                                    <span>محفوظة في السحابة</span>
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] font-medium text-zinc-300 bg-black/70 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">
-                                    الصورة الافتراضية
+                                  <span className="text-[10px] font-medium text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full backdrop-blur-sm border border-amber-500/30">
+                                    بانتظار الصورة
                                   </span>
                                 )}
                               </div>
 
-                              <div className="absolute bottom-2 right-2 text-[10px] text-zinc-300 bg-black/70 px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
+                              <div className="absolute bottom-2 right-2 text-[10px] text-zinc-300 bg-black/70 px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none z-10">
                                 {item.recommended}
                               </div>
                             </label>
@@ -1419,15 +1421,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {isUploading ? (
                                 <>
                                   <Loader2 className="w-4 h-4 text-[#c5a059] animate-spin" />
-                                  <span>جاري الرفع...</span>
+                                  <span>جاري الرفع إلى Storage...</span>
                                 </>
                               ) : (
                                 <>
                                   <Upload className="w-4 h-4 text-[#c5a059]" />
                                   <span>
-                                    {!isDefault
-                                      ? 'تغيير الصورة من الهاتف أو الكمبيوتر'
-                                      : 'رفع صورة جديدة من الجهاز / الاستوديو'}
+                                    {hasUploadedImage
+                                      ? 'استبدال الصورة بملف جديد من الجهاز'
+                                      : 'رفع ملف صورة إلى Firebase Storage'}
                                   </span>
                                 </>
                               )}
@@ -1436,7 +1438,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                           {/* Footer action links */}
                           <div className="flex items-center justify-between pt-2 border-t border-[#1d2f26] text-[11px]">
-                            {currentVal ? (
+                            {hasUploadedImage ? (
                               <a
                                 href={currentVal}
                                 target="_blank"
@@ -1444,21 +1446,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                <span>معاينة بالحجم الكامل</span>
+                                <span>معاينة الرابط السحابي</span>
                               </a>
                             ) : (
-                              <span className="text-zinc-600">لا توجد صورة</span>
+                              <span className="text-zinc-600">لا توجد صورة بعد</span>
                             )}
 
-                            {!isDefault && (
+                            {hasUploadedImage && (
                               <button
                                 type="button"
-                                onClick={() => handleSingleImageReset(item.key)}
-                                className="text-[#c5a059] hover:text-[#e0bb70] flex items-center gap-1 cursor-pointer transition-colors"
-                                title="استرجاع الصورة الافتراضية الأصلية"
+                                onClick={() => handleSingleImageDelete(item.key)}
+                                className="text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer transition-colors"
+                                title="حذف الصورة من السحابة"
                               >
-                                <RotateCcw className="w-3 h-3" />
-                                <span>استعادة الصورة الأصلية</span>
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>حذف الصورة</span>
                               </button>
                             )}
                           </div>
@@ -1474,7 +1476,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#c5a059] to-[#b38e46] text-[#0c1411] font-bold text-sm hover:from-[#d5b069] hover:to-[#c5a059] transition-all shadow-lg shadow-[#c5a059]/20 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <CheckCircle2 className="w-5 h-5" />
-                      <span>حفظ كافة الصور وتأكيد التحديث على الموقع فوراً (Save All Images)</span>
+                      <span>حفظ وتأكيد كافة صور المنتجع في Firestore (Save All)</span>
                     </button>
                   </div>
                 </form>

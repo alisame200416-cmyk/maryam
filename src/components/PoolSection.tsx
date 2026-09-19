@@ -1,15 +1,16 @@
 import React from 'react';
-import { Waves, Sparkles, Shield, ThermometerSun, Eye, Check, Droplets } from 'lucide-react';
-import { POOL_SPECIFICATIONS, DEFAULT_RESORT_IMAGES } from '../data/chaletData';
+import { Waves, Sparkles, Shield, ThermometerSun, Eye, Check, Droplets, Camera } from 'lucide-react';
+import { POOL_SPECIFICATIONS } from '../data/chaletData';
 import { ResortImagesConfig } from '../types';
 
 interface PoolSectionProps {
   imagesConfig?: ResortImagesConfig;
+  isImagesLoading?: boolean;
 }
 
-export const PoolSection: React.FC<PoolSectionProps> = ({ imagesConfig }) => {
+export const PoolSection: React.FC<PoolSectionProps> = ({ imagesConfig, isImagesLoading = false }) => {
   const specs = POOL_SPECIFICATIONS;
-  const poolImage = imagesConfig?.swimmingPool || DEFAULT_RESORT_IMAGES.swimmingPool;
+  const poolImage = imagesConfig?.swimmingPool?.trim() || '';
 
   return (
     <section id="pool" className="py-20 bg-[#0c1411] border-t border-[#1d3027] relative">
@@ -31,14 +32,28 @@ export const PoolSection: React.FC<PoolSectionProps> = ({ imagesConfig }) => {
         {/* Main Pool Display Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Image & Overlay Highlights */}
-          <div className="lg:col-span-7 relative rounded-3xl overflow-hidden border border-[#23382e] shadow-2xl group">
-            <img
-              src={poolImage}
-              alt="Luxury Chalet Swimming Pool"
-              className="w-full h-[400px] sm:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-transparent to-black/20" />
+          <div className="lg:col-span-7 relative rounded-3xl overflow-hidden border border-[#23382e] shadow-2xl group bg-[#14221c]">
+            {poolImage ? (
+              <img
+                src={poolImage}
+                alt="صورة المسبح الأولمبي من Firestore"
+                className="w-full h-[400px] sm:h-[480px] object-cover group-hover:scale-105 transition-transform duration-700"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-full h-[400px] sm:h-[480px] flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-[#13231c] to-[#0c1411]">
+                <div className="w-16 h-16 rounded-3xl bg-[#173024] border border-[#2d523e] flex items-center justify-center mb-4 text-cyan-400">
+                  <Waves className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold text-[#f4efe6] mb-1">المسبح الأولمبي 15×8 متر</h3>
+                <p className="text-xs text-[#a39a8c] max-w-sm">
+                  {isImagesLoading
+                    ? 'جاري جلب صورة المسبح من Firestore...'
+                    : 'بانتظار رفع صورة المسبح الفعلية من لوحة الإدارة'}
+                </p>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-transparent to-black/20 pointer-events-none" />
 
             {/* Float badge for measurements */}
             <div className="absolute bottom-6 right-6 left-6 p-4 rounded-2xl bg-[#0c1411]/90 backdrop-blur-md border border-[#2e4639] flex flex-wrap items-center justify-between gap-3">

@@ -80,14 +80,23 @@ export const FacilityExplorer: React.FC<FacilityExplorerProps> = ({ onScrollToBo
             >
               <div>
                 {/* Image Container */}
-                <div className={`relative overflow-hidden ${index === 0 ? 'h-64 sm:h-72' : 'h-52'}`}>
-                  <img
-                    src={facility.imageUrl}
-                    alt={facility.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-[#0c1411]/30 to-transparent" />
+                <div className={`relative overflow-hidden ${index === 0 ? 'h-64 sm:h-72' : 'h-52'} bg-[#14221c]`}>
+                  {facility.imageUrl?.trim() ? (
+                    <img
+                      src={facility.imageUrl}
+                      alt={facility.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#172b21] to-[#101b15]">
+                      <div className="w-12 h-12 rounded-2xl bg-[#1b2f25] border border-[#2e473a] flex items-center justify-center mb-2">
+                        {facilityIcons[facility.iconName] || <Sparkles className="w-6 h-6 text-[#c5a059]" />}
+                      </div>
+                      <span className="text-[11px] text-[#8c8273]">بانتظار صورة المرفق من السحابة</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-[#0c1411]/30 to-transparent pointer-events-none" />
 
                   {/* Badge */}
                   <div className="absolute top-4 right-4">
@@ -142,14 +151,23 @@ export const FacilityExplorer: React.FC<FacilityExplorerProps> = ({ onScrollToBo
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="relative w-full max-w-3xl bg-[#111e18] border border-[#2e473a] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header Bar */}
-            <div className="relative h-64 sm:h-80 overflow-hidden flex-shrink-0">
-              <img
-                src={selectedFacility.imageUrl}
-                alt={selectedFacility.title}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#111e18] via-[#111e18]/40 to-black/30" />
+            <div className="relative h-64 sm:h-80 overflow-hidden flex-shrink-0 bg-[#14221c]">
+              {selectedFacility.imageUrl?.trim() ? (
+                <img
+                  src={selectedFacility.imageUrl}
+                  alt={selectedFacility.title}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#192f24] to-[#111e18]">
+                  <div className="w-16 h-16 rounded-2xl bg-[#1b2f25] border border-[#2e473a] flex items-center justify-center mb-2">
+                    {facilityIcons[selectedFacility.iconName] || <Sparkles className="w-8 h-8 text-[#c5a059]" />}
+                  </div>
+                  <span className="text-xs text-[#8c8273]">بانتظار قراءة صورة المرفق من Firestore</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#111e18] via-[#111e18]/40 to-black/30 pointer-events-none" />
 
               {/* Close Button */}
               <button

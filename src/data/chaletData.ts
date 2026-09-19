@@ -23,16 +23,16 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
 };
 
 export const DEFAULT_RESORT_IMAGES: ResortImagesConfig = {
-  heroBanner: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=2000&q=85',
-  swimmingPool: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1200&q=80',
-  animalSanctuary: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1200&q=80',
-  kidsPlayground: 'https://images.unsplash.com/photo-1566454544259-f4b94c3d758c?auto=format&fit=crop&w=1200&q=80',
-  sportsRecreation: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-  outdoorBbq: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
-  adultGames: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80',
-  masterBedrooms: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80',
-  villaExterior: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1200&q=80',
-  nightPool: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=1200&q=80',
+  heroBanner: '',
+  swimmingPool: '',
+  animalSanctuary: '',
+  kidsPlayground: '',
+  sportsRecreation: '',
+  outdoorBbq: '',
+  adultGames: '',
+  masterBedrooms: '',
+  villaExterior: '',
+  nightPool: '',
 };
 
 // 7 Interactive Facility Explorer Items dynamically bound to current images

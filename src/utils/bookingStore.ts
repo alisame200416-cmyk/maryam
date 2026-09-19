@@ -147,7 +147,18 @@ export function savePricingConfig(pricing: PricingConfig): void {
 export function loadImagesConfig(): ResortImagesConfig {
   try {
     const raw = localStorage.getItem(IMAGES_STORAGE_KEY);
-    if (raw) return { ...DEFAULT_RESORT_IMAGES, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Purge any old Unsplash URLs or huge base64 strings so only genuine Firestore/Storage URLs are used
+      const hasLegacyOrBase64 = Object.values(parsed).some(
+        (val) => typeof val === 'string' && (val.includes('unsplash.com') || val.startsWith('data:image'))
+      );
+      if (hasLegacyOrBase64) {
+        localStorage.removeItem(IMAGES_STORAGE_KEY);
+        return DEFAULT_RESORT_IMAGES;
+      }
+      return { ...DEFAULT_RESORT_IMAGES, ...parsed };
+    }
   } catch (e) {
     console.error('Error loading images config', e);
   }

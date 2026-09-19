@@ -21,6 +21,13 @@
         }
       }
     },
+    "resort_images": {
+      "description": "Individual resort images with URLs stored in Firebase Storage and mapped to Firestore keys",
+      "fields": {
+        "url": { "type": "string", "description": "Download URL from Firebase Storage" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp when image was uploaded/updated" }
+      }
+    },
     "bookings": {
       "description": "Calendar reservations for morning and night shifts",
       "fields": {
@@ -41,6 +48,10 @@
   },
   "accessControl": {
     "resorts": {
+      "read": "public",
+      "write": "public"
+    },
+    "resort_images": {
       "read": "public",
       "write": "public"
     },

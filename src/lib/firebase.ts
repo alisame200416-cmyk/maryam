@@ -10,6 +10,14 @@ import {
   getDocs,
   writeBatch,
 } from 'firebase/firestore';
+import {
+  getStorage,
+  FirebaseStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage';
 import defaultConfig from '../../firebase-applet-config.json';
 import { BookingRecord, ChaletConfig, PricingConfig, ResortImagesConfig } from '../types';
 
@@ -71,6 +79,7 @@ export function saveCustomFirebaseConfig(config: FirebaseCustomConfig | null): v
 // Global instances
 let firebaseApp: FirebaseApp | null = null;
 let firestoreDb: Firestore | null = null;
+let firebaseStorage: FirebaseStorage | null = null;
 let connectionInitialized = false;
 
 export function getFirebaseApp(): FirebaseApp | null {
@@ -119,6 +128,30 @@ export function getFirestoreDb(): Firestore | null {
       return firestoreDb;
     } catch (fallbackErr) {
       console.error('Failed to get Firestore instance:', fallbackErr);
+      return null;
+    }
+  }
+}
+
+export function getFirebaseStorage(): FirebaseStorage | null {
+  if (firebaseStorage) return firebaseStorage;
+
+  const app = getFirebaseApp();
+  if (!app) return null;
+
+  try {
+    const config = getActiveFirebaseConfig();
+    const bucket = config.storageBucket || 'maryam-resort.firebasestorage.app';
+    const formattedBucket = bucket.startsWith('gs://') ? bucket : `gs://${bucket}`;
+    firebaseStorage = getStorage(app, formattedBucket);
+    return firebaseStorage;
+  } catch (err) {
+    console.warn('Failed to initialize storage with explicit bucket, attempting default storage:', err);
+    try {
+      firebaseStorage = getStorage(app);
+      return firebaseStorage;
+    } catch (fallbackErr) {
+      console.error('Failed to get Firebase Storage instance:', fallbackErr);
       return null;
     }
   }
@@ -251,6 +284,19 @@ export function subscribeToResortCloudData(
   const unsubscribers: Array<() => void> = [];
 
   try {
+    let mergedImages: ResortImagesConfig = {
+      heroBanner: '',
+      swimmingPool: '',
+      animalSanctuary: '',
+      kidsPlayground: '',
+      sportsRecreation: '',
+      outdoorBbq: '',
+      adultGames: '',
+      masterBedrooms: '',
+      villaExterior: '',
+      nightPool: '',
+    };
+
     // 1. Listen to main resort document for config and pricing
     const resortDocRef = doc(db, 'resorts', RESORT_ID);
     const unsubResort = onSnapshot(
@@ -258,10 +304,16 @@ export function subscribeToResortCloudData(
       (docSnap) => {
         if (docSnap.exists()) {
           const raw = docSnap.data();
+          if (raw.images && typeof raw.images === 'object') {
+            mergedImages = {
+              ...mergedImages,
+              ...raw.images,
+            };
+          }
           onData({
             config: raw.config as ChaletConfig | undefined,
             pricing: raw.pricing as PricingConfig | undefined,
-            images: raw.images as ResortImagesConfig | undefined,
+            images: { ...mergedImages },
           });
         }
       },
@@ -278,18 +330,15 @@ export function subscribeToResortCloudData(
       imagesCol,
       (snapshot) => {
         if (!snapshot.empty) {
-          const partialImages: Partial<ResortImagesConfig> = {};
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            if (data && data.url) {
-              partialImages[docSnap.id as keyof ResortImagesConfig] = data.url;
+            if (data && typeof data.url === 'string') {
+              mergedImages[docSnap.id as keyof ResortImagesConfig] = data.url;
             }
           });
-          if (Object.keys(partialImages).length > 0) {
-            onData({
-              images: partialImages as ResortImagesConfig,
-            });
-          }
+          onData({
+            images: { ...mergedImages },
+          });
         }
       },
       (err) => {
@@ -361,14 +410,101 @@ export async function saveSingleImageToCloud(key: string, url: string): Promise<
   if (!db) return;
 
   try {
+    // 1. Save in resort_images collection
     const imgDoc = doc(db, 'resort_images', key);
     await setDoc(imgDoc, {
       url,
       updatedAt: new Date().toISOString(),
     });
+
+    // 2. Also keep main resort document in sync
+    const resortDocRef = doc(db, 'resorts', RESORT_ID);
+    await setDoc(
+      resortDocRef,
+      {
+        images: {
+          [key]: url,
+        },
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
   } catch (err) {
     console.error(`Failed to save single image ${key} to cloud:`, err);
     throw err;
+  }
+}
+
+/**
+ * Upload actual binary image File directly to Firebase Storage bucket.
+ * Retrieves the permanent HTTPS download URL, and saves it into Firestore.
+ */
+export async function uploadResortImageFile(
+  key: keyof ResortImagesConfig | string,
+  file: File
+): Promise<string> {
+  const storage = getFirebaseStorage();
+  if (!storage) {
+    throw new Error('تعذر الاتصال بخدمة Firebase Storage. يرجى التحقق من اتصال الإنترنت أو إعدادات المشروع.');
+  }
+
+  if (!file || !file.type.startsWith('image/')) {
+    throw new Error('الملف المحدد ليس صورة صالحة. يرجى اختيار ملف JPG أو PNG أو WEBP.');
+  }
+
+  // Max size check: 15MB
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error('حجم الصورة كبير جداً (أكثر من 15 ميغابايت). يرجى اختيار صورة أصغر حجماً.');
+  }
+
+  // Sanitize file extension
+  const rawExt = file.name.split('.').pop() || 'jpg';
+  const cleanExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'jpg';
+  const fileName = `chalet_images/${String(key)}_${Date.now()}.${cleanExt}`;
+  const fileRef = ref(storage, fileName);
+
+  const metadata = {
+    contentType: file.type || 'image/jpeg',
+    customMetadata: {
+      imageKey: String(key),
+      uploadedAt: new Date().toISOString(),
+    },
+  };
+
+  // Upload binary file directly to Firebase Storage
+  const snapshot = await uploadBytes(fileRef, file, metadata);
+  const downloadUrl = await getDownloadURL(snapshot.ref);
+
+  // Instantly record the persistent HTTPS download URL in Firestore
+  await saveSingleImageToCloud(String(key), downloadUrl);
+
+  return downloadUrl;
+}
+
+/**
+ * Delete an image reference from Firestore
+ */
+export async function deleteResortImage(key: keyof ResortImagesConfig | string): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+
+  try {
+    const imgDoc = doc(db, 'resort_images', String(key));
+    await deleteDoc(imgDoc);
+
+    const resortDocRef = doc(db, 'resorts', RESORT_ID);
+    await setDoc(
+      resortDocRef,
+      {
+        images: {
+          [String(key)]: '',
+        },
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn(`Error deleting image ${String(key)}:`, err);
   }
 }
 

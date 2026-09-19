@@ -1,14 +1,14 @@
 import React from 'react';
-import { Calendar, Phone, Sparkles, Waves, ShieldCheck, Clock, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, Phone, Sparkles, Waves, ShieldCheck, Clock, MapPin, ExternalLink, Camera, Loader2 } from 'lucide-react';
 import { ChaletConfig, PricingConfig, ResortImagesConfig } from '../types';
 import { formatIQD } from '../utils/bookingStore';
-import { DEFAULT_RESORT_IMAGES } from '../data/chaletData';
 import { toIraqiInternationalNumber, formatDisplayIraqiPhone } from '../utils/validation';
 
 interface HeroProps {
   chaletConfig: ChaletConfig;
   pricingConfig: PricingConfig;
   imagesConfig?: ResortImagesConfig;
+  isImagesLoading?: boolean;
   onScrollToBooking: () => void;
   onOpenQRCode: () => void;
 }
@@ -17,21 +17,34 @@ export const Hero: React.FC<HeroProps> = ({
   chaletConfig,
   pricingConfig,
   imagesConfig,
+  isImagesLoading = false,
   onScrollToBooking,
   onOpenQRCode,
 }) => {
-  const bannerImage = imagesConfig?.heroBanner || DEFAULT_RESORT_IMAGES.heroBanner;
+  const bannerImage = imagesConfig?.heroBanner?.trim() || '';
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden py-16 lg:py-24">
       {/* Background with luxury gradient overlays */}
       <div className="absolute inset-0 z-0">
-        <img
-          src={bannerImage}
-          alt="Luxury Chalet Exterior & Pool"
-          className="w-full h-full object-cover object-center scale-105 filter brightness-50 transition-all duration-700"
-          referrerPolicy="no-referrer"
-        />
+        {bannerImage ? (
+          <img
+            src={bannerImage}
+            alt="صورة شاليه مريم من قاعدة البيانات"
+            className="w-full h-full object-cover object-center scale-105 filter brightness-50 transition-all duration-700"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-b from-[#13231b] via-[#0d1713] to-[#0c1411] flex items-center justify-center">
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#c5a059_1px,transparent_1px)] [background-size:24px_24px]" />
+            {isImagesLoading && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0c1411]/80 border border-[#c5a059]/30 text-[#c5a059] text-xs font-semibold backdrop-blur-md">
+                <Loader2 className="w-4 h-4 animate-spin text-[#c5a059]" />
+                <span>جاري استرجاع صورة الواجهة من Firestore...</span>
+              </div>
+            )}
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-[#0c1411]/80 to-[#0c1411]/50" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1f382a]/30 via-transparent to-transparent pointer-events-none" />
       </div>

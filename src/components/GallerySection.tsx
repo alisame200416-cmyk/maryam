@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, X, ChevronRight, ChevronLeft, Maximize2 } from 'lucide-react';
-import { GALLERY_ITEMS, getGalleryItemsWithImages } from '../data/chaletData';
+import { Camera, X, ChevronRight, ChevronLeft, Maximize2, Loader2, ImageOff } from 'lucide-react';
+import { getGalleryItemsWithImages, DEFAULT_RESORT_IMAGES } from '../data/chaletData';
 import { GalleryItem, ResortImagesConfig } from '../types';
 
 interface GallerySectionProps {
   imagesConfig?: ResortImagesConfig;
+  isImagesLoading?: boolean;
 }
 
-export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) => {
+export const GallerySection: React.FC<GallerySectionProps> = ({
+  imagesConfig,
+  isImagesLoading = false,
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeLightboxIndex, setActiveLightboxIndex] = useState<number | null>(null);
 
@@ -29,7 +33,8 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) 
     { id: 'outdoor', label: 'الجلسات والحدائق' },
   ];
 
-  const galleryItems = imagesConfig ? getGalleryItemsWithImages(imagesConfig) : GALLERY_ITEMS;
+  const currentConfig = imagesConfig || DEFAULT_RESORT_IMAGES;
+  const galleryItems = getGalleryItemsWithImages(currentConfig);
 
   const filteredItems =
     selectedCategory === 'all'
@@ -37,7 +42,9 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) 
       : galleryItems.filter((item) => item.category === selectedCategory);
 
   const openLightbox = (index: number) => {
-    setActiveLightboxIndex(index);
+    if (filteredItems[index]?.imageUrl) {
+      setActiveLightboxIndex(index);
+    }
   };
 
   const closeLightbox = () => {
@@ -46,7 +53,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) 
 
   const nextImage = () => {
     if (activeLightboxIndex !== null) {
-      setActiveLightboxIndex((activeLightboxIndex + 1) % filteredItems.length);
+      const validItems = filteredItems.filter((item) => Boolean(item.imageUrl));
+      if (validItems.length > 0) {
+        setActiveLightboxIndex((activeLightboxIndex + 1) % filteredItems.length);
+      }
     }
   };
 
@@ -65,13 +75,13 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) 
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#182a20] border border-[#c5a059]/30 text-[#c5a059] text-xs font-semibold mb-3">
             <Camera className="w-3.5 h-3.5" />
-            <span>معرض الصور الحي</span>
+            <span>معرض الصور الحقيقي</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-bold text-[#f4efe6] mb-4">
             جولة بصرية في رحاب الواحة الملكية
           </h2>
           <p className="text-[#a39a8c] text-sm sm:text-base leading-relaxed">
-            استكشف تفاصيل المكان والهدوء الساحر عبر لقطات حية للمسبح، الغرف، الجلسات الخارجية وبساتين المزرعة.
+            استكشف تفاصيل المكان والهدوء الساحر عبر لقطات حية للمسبح، الغرف، الجلسات الخارجية وبساتين المزرعة المعتمدة من قاعدة البيانات السحابية.
           </p>
 
           {/* Filter Pills */}
@@ -94,37 +104,65 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ imagesConfig }) 
 
         {/* Gallery Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item, idx) => (
-            <div
-              key={item.id}
-              onClick={() => openLightbox(idx)}
-              className="group relative h-64 sm:h-72 rounded-2xl overflow-hidden cursor-pointer border border-[#23382e] shadow-lg bg-[#14221c]"
-            >
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
+          {filteredItems.map((item, idx) => {
+            const hasImage = Boolean(item.imageUrl?.trim());
 
-              <div className="absolute inset-0 p-5 flex flex-col justify-end">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-[#f4efe6] group-hover:text-[#c5a059] transition-colors">
-                    {item.title}
-                  </p>
-                  <div className="w-8 h-8 rounded-full bg-[#0c1411]/80 border border-[#c5a059]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Maximize2 className="w-4 h-4 text-[#c5a059]" />
+            return (
+              <div
+                key={item.id}
+                onClick={() => (hasImage ? openLightbox(idx) : null)}
+                className={`group relative h-64 sm:h-72 rounded-2xl overflow-hidden border border-[#23382e] shadow-lg bg-[#14221c] ${
+                  hasImage ? 'cursor-pointer' : 'cursor-default'
+                }`}
+              >
+                {hasImage ? (
+                  <>
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c1411] via-black/20 to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
+
+                    <div className="absolute inset-0 p-5 flex flex-col justify-end">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-[#f4efe6] group-hover:text-[#c5a059] transition-colors">
+                          {item.title}
+                        </p>
+                        <div className="w-8 h-8 rounded-full bg-[#0c1411]/80 border border-[#c5a059]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Maximize2 className="w-4 h-4 text-[#c5a059]" />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full p-6 flex flex-col items-center justify-center text-center bg-gradient-to-b from-[#14221c] to-[#0c1411]">
+                    <div className="w-12 h-12 rounded-2xl bg-[#1b2e23] border border-[#2e473a] flex items-center justify-center mb-3">
+                      {isImagesLoading ? (
+                        <Loader2 className="w-6 h-6 text-[#c5a059] animate-spin" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-[#8c8273]" />
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-[#d2c9b8] mb-1">
+                      {item.title}
+                    </p>
+                    <span className="text-[11px] text-[#786e60]">
+                      {isImagesLoading
+                        ? 'جاري جلب الصورة من Firestore...'
+                        : 'بانتظار رفع صورة المرفق من لوحة الإدارة'}
+                    </span>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* Lightbox Modal */}
-      {activeLightboxIndex !== null && (
+      {activeLightboxIndex !== null && filteredItems[activeLightboxIndex]?.imageUrl && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-fade-in">
           <div className="absolute inset-0" onClick={closeLightbox} />
           <button
