@@ -1,6 +1,0 @@
-{
-  "name": "Royal Oasis Chalet & Farm - شاليه ومزرعة الواحة الملكية",
-  "description": "تطبيق حجز منتجع شاليه مريم (Maryam Resort) - البصرة، أبو الخصيب / حمدان بمساحة 2500 م²، نظام الفترات والمسبح 15×8 م، الربط الآلي بواتساب 07726187519، ولوحة تحكم المالك.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
